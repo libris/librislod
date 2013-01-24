@@ -1,7 +1,68 @@
-PREFIX owl: <http://www.w3.org/2002/07/owl#>
-
 construct {
+
     $this ?p ?o .
+
+    $this
+      dbpowl:abstract ?abstract;
+      dbpowl:thumbnail ?thumbnail .
+
+    $this
+      owl:sameAs ?raa_this .
+    ?raa_this ?raa_p ?raa_o .
+
+    ?item a ?item_type;
+      dces:title ?item_title;
+      dces:creator $this .
+
 } where {
-    $this ?p ?o .
+
+    $this owl:sameAs ?canonical .
+
+    # LIBRIS (default) endpoint
+    {
+
+      $this ?p ?o .
+
+    } union {
+
+      select ?item ?item_type ?item_title {
+        ?item a ?item_type;
+          dces:title ?item_title;
+          dces:creator $this .
+        filter(langMatches(lang(?item_title), 'sv'))
+      } limit 50
+
+    ## DBPedia endpoint
+    } union {
+
+      service <http://dbpedia.org/sparql> {
+        ?canonical dbpowl:abstract ?abstract .
+        #FILTER(langMatches(lang(?abstract), "sv"))
+        FILTER(langMatches(lang(?abstract), "en"))
+        optional {
+          ?canonical dbpowl:thumbnail ?thumbnail .
+        }
+      }
+
+    # RAA endpoint
+    } union {
+
+      service <http://192.121.221.30/sparql/raa> {
+        {
+          ?raa_this owl:sameAs ?canonical .
+        } union {
+          ?raa_this owl:sameAs $this .
+        }
+        ?raa_this ?raa_p ?raa_o .
+      }
+
+    # RA endpoint
+    #} union {
+    #
+    #  service <http://192.121.221.30/sparql/ra> {
+    #    ?raa_this owl:sameAs ?canonical .
+    #  }
+
+    }
+
 }

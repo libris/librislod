@@ -13,7 +13,12 @@ DCT = Namespace("http://purl.org/dc/terms/")
 FOAF = Namespace("http://xmlns.com/foaf/0.1/")
 BIBO = Namespace("http://purl.org/ontology/bibo/")
 RDES = Namespace("http://RDVocab.info/Elements/")
+RDES2 = Namespace("http://RDVocab.info/ElementsGr2/")
+DBPOWL = Namespace("http://dbpedia.org/ontology/")
+DBPROP = Namespace("http://dbpedia.org/property/")
 LIBRIS = Namespace("http://libris.kb.se/vocabulary/experimental#")
+KSAMSOK = Namespace("http://kulturarvsdata.se/ksamsok#")
+
 
 namespaces = dict((k, o) for k, o in vars().items()
         if isinstance(o, (Namespace, ClosedNamespace)))
@@ -49,8 +54,11 @@ data_base = "http://data.libris.kb.se/open/"
 
 endpoint = u"http://libris.kb.se/sparql"
 query_templates = {}
-with open(os.path.join(os.path.dirname(__file__), "auth.rq")) as f:
-    query_templates['auth'] = Template(f.read()).substitute
+def load_query_templates():
+    with open(os.path.join(os.path.dirname(__file__), "auth.rq")) as f:
+        text = rq_prefixes + "\n"*2 + f.read()
+        query_templates['auth'] = Template(text).substitute
+load_query_templates()
 
 def get_resource(data, uri):
     graph = Graph()
@@ -87,12 +95,15 @@ def view(rtype, rid):
     path = rtype + '/' + rid
 
     fmt = request.args.get('format') or suffix
-    # conneg...
     req_mime = request.accept_mimetypes.best_match(accept_mimetypes, 'text/html')
     if req_mime and not fmt:
         fmt = mime_names.get(req_mime)
 
     uri = URIRef(resource_base + path)
+
+    if app.debug:
+        load_query_templates()
+
     qt = query_templates[rtype]
     if qt:
         rq = qt(this=uri.n3())

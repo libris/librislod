@@ -1,32 +1,79 @@
 {% extends "base.html" %}
 {% block title %}{{ this.value(LIBRIS.key) }}{% endblock %}
 {% block main %}
-  <article typeof="{{type_curies(this)}}" class="span12">
-    <h1 property="{{curies(DCES.title)}}">{{this.value(LIBRIS.key)}}</h1>
-    <p><a property="rdf:type" href="{{this.value(RDF.type).identifier}}">[type]</a><p>
-    {% for name in this.objects(FOAF.name) | sort %}
-      <div><i>{{name}}</i></div>
-    {% endfor %}
-    <section>
-      <h2>Verk</h2>
-      {% for work in this.subjects(DCES.creator) | sort %}
-        <div>
-          <a href="{{work.identifier}}">{{work.identifier}}</a>
-        </div>
-      {% endfor %}
-      <p>
-    </section>
-    <section>
-      <h2>Se även</h2>
-      {% for rel in [RDFS.seeAlso, OWL.sameAs, SKOS.exactMatch] %}
-        {% for related in this.objects(rel) | sort %}
-          <div>
-            <a property="{{curies(rel)}}" href="{{related.identifier}}"
-              >{{related.identifier}}</a>
-          </div>
+  <div class="container">
+    <article typeof="{{type_curies(this)}}" class="row">
+      <div class="span7">
+        <h2>LIBRIS</h2>
+        <h1 property="{{curies(LIBRIS.key)}}">{{this.value(LIBRIS.key)}}</h1>
+        {#
+        <p><a property="rdf:type" href="{{this.value(RDF.type).identifier}}">[type]</a><p>
+        {% for name in this.objects(FOAF.name) | sort %}
+          <div><i>{{name}}</i></div>
         {% endfor %}
-      {% endfor %}
-    </section>
-  </article>
+        #}
+        <figure class="pull-right">
+          <img src="{{ this.value(DBPOWL.thumbnail).identifier }}" />
+        </figure>
+        <p property="{{ curies(DBPOWL['abstract']) }}">
+          {{ this.value(DBPOWL['abstract']) }}
+        </p>
+        <section>
+          <h2>Verk</h2>
+          {% for work in this.subjects(DCES.creator) | sort %}
+            <div>
+              <a href="{{work.identifier}}">{{work.value(DCES.title)}}</a>
+            </div>
+          {% endfor %}
+          <p>
+        </section>
+      </div>
+      <aside class="span5">
+        <h2><i>Se även</i></h2>
+        {# for rel in [RDFS.seeAlso, OWL.sameAs, SKOS.exactMatch] #}
+        {% for rel in [OWL.sameAs] %}
+          {% for same in this.objects(rel) | sort %}
+            <article class="well">
+              <h2>{% if "dbpedia.org" in same.identifier -%}
+                  DBPedia
+                {%- elif "viaf.org" in same.identifier -%}
+                  VIAF
+                {%- elif "id.riksarkivet.se" in same.identifier -%}
+                  NAD
+                {%- elif "kulturarvsdata.se" in same.identifier -%}
+                  K-samsök
+                {%- else -%}
+                  {{same.identifier}}
+                {%- endif %}</h2>
+              <h3><a property="{{curies(rel)}}" href="{{same.identifier}}"
+                >{{this.value(LIBRIS.key)}}</a></h3>
+            <table>
+              {% for prop, obj in same.predicate_objects() %}
+                <tr>
+                  <th>{{ prop.qname() }}</th>
+                  {% if is_resource(obj) -%}
+                    <td>
+                      <a property="{{curies(prop.identifier)}}"
+                         href="{{ obj.identifier }}">
+                        ...{{ obj.identifier[-20:] }}
+                      </a>
+                    </td>
+                  {%- else -%}
+                    <td property="{{curies(prop.identifier)}}">
+                      {{ obj }}
+                    </td>
+                  {%- endif %}
+                </tr>
+              {% endfor %}
+            </table>
+            </article>
+          {%- endfor %}
+        {% endfor %}
+        <article>
+        </article>
+      </aside>
+    </article>
+    <!-- TODO: footer with format links (Turtle, RDF/XML) -->
+  </div>
 {% endblock main %}
 
