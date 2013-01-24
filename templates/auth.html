@@ -48,7 +48,7 @@
               <h3><a property="{{curies(rel)}}" href="{{same.identifier}}"
                 >{{this.value(LIBRIS.key)}}</a></h3>
             <table>
-              {% for prop, obj in same.predicate_objects() %}
+              {% for prop, obj in same.predicate_objects() | sort %}
                 <tr>
                   <th>{{ prop.qname() }}</th>
                   {% if is_resource(obj) -%}

@@ -2,17 +2,19 @@ construct {
 
     $this ?p ?o .
 
+    ?item a ?item_type;
+      dces:title ?item_title;
+      dces:creator $this .
+
     $this
       dbpowl:abstract ?abstract;
       dbpowl:thumbnail ?thumbnail .
 
-    $this
-      owl:sameAs ?raa_this .
-    ?raa_this ?raa_p ?raa_o .
+    $this owl:sameAs ?ksam_this .
+    ?ksam_this ?ksam_p ?ksam_o .
 
-    ?item a ?item_type;
-      dces:title ?item_title;
-      dces:creator $this .
+    $this owl:sameAs ?nad_this .
+    ?nad_this ?nad_p ?nad_o .
 
 } where {
 
@@ -49,19 +51,20 @@ construct {
 
       service <http://192.121.221.30/sparql/raa> {
         {
-          ?raa_this owl:sameAs ?canonical .
+          ?ksam_this owl:sameAs ?canonical .
         } union {
-          ?raa_this owl:sameAs $this .
+          ?ksam_this owl:sameAs $this .
         }
-        ?raa_this ?raa_p ?raa_o .
+        ?ksam_this ?ksam_p ?ksam_o .
       }
 
     # RA endpoint
-    #} union {
-    #
-    #  service <http://192.121.221.30/sparql/ra> {
-    #    ?raa_this owl:sameAs ?canonical .
-    #  }
+    } union {
+
+      service <http://192.121.221.30/sparql/ra> {
+        ?nad_this owl:sameAs ?canonical;
+          ?nad_p ?nad_o .
+      }
 
     }
 
