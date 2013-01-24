@@ -4,7 +4,7 @@
   <div class="container">
     <article typeof="{{type_curies(this)}}" class="row">
       <div class="span7">
-        <h2>LIBRIS</h2>
+        <h2 class="db">LIBRIS</h2>
         <h1 property="{{curies(LIBRIS.key)}}">{{this.value(LIBRIS.key)}}</h1>
         {#
         <p><a property="rdf:type" href="{{this.value(RDF.type).identifier}}">[type]</a><p>
@@ -13,7 +13,7 @@
         {% endfor %}
         #}
         <figure class="pull-right">
-          <img src="{{ this.value(DBPOWL.thumbnail).identifier }}" />
+          <img class="img-polaroid" src="{{ this.value(DBPOWL.thumbnail).identifier }}" />
         </figure>
         <p property="{{ curies(DBPOWL['abstract']) }}">
           {{ this.value(DBPOWL['abstract']) }}
@@ -22,7 +22,8 @@
           <h2>Verk</h2>
           {% for work in this.subjects(DCES.creator) | sort %}
             <div>
-              <a href="{{work.identifier}}">{{work.value(DCES.title)}}</a>
+              <a href="{{work.identifier}}"
+                ><i class=" icon-book"></i> {{work.value(DCES.title)}}</a>
             </div>
           {% endfor %}
           <p>
@@ -34,7 +35,7 @@
         {% for rel in [OWL.sameAs] %}
           {% for same in this.objects(rel) | sort %}
             <article class="well">
-              <h2>{% if "dbpedia.org" in same.identifier -%}
+              <h2 class="db">{% if "dbpedia.org" in same.identifier -%}
                   DBPedia
                 {%- elif "viaf.org" in same.identifier -%}
                   VIAF
@@ -44,33 +45,36 @@
                   K-samsök
                 {%- else -%}
                   {{same.identifier}}
-                {%- endif %}</h2>
-              <h3><a property="{{curies(rel)}}" href="{{same.identifier}}"
-                >{{this.value(LIBRIS.key)}}</a></h3>
-            <table>
-              {% for prop, obj in same.predicate_objects() | sort %}
-                <tr>
-                  <th>{{ prop.qname() }}</th>
-                  {% if is_resource(obj) -%}
-                    <td>
-                      <a property="{{curies(prop.identifier)}}"
-                         href="{{ obj.identifier }}">
-                        ...{{ obj.identifier[-20:] }}
-                      </a>
-                    </td>
-                  {%- else -%}
-                    <td property="{{curies(prop.identifier)}}">
-                      {{ obj }}
-                    </td>
                   {%- endif %}
-                </tr>
-              {% endfor %}
-            </table>
+                <a property="{{curies(rel)}}" href="{{same.identifier}}"
+                  class="pull-right"><i class="icon-arrow-right"></i></a>
+              </h2>
+              <table class="table table-condensed">
+                {% for prop, obj in same.predicate_objects() | sort %}
+                  <tr>
+                    <th>{{ prop.qname().split(':')[-1] }}</th>
+                    {% if is_resource(obj) -%}
+                      <td>
+                        <a property="{{curies(prop.identifier)}}"
+                          href="{{ obj.identifier }}">
+                          ...{{ obj.identifier[-20:] }}
+                        </a>
+                      </td>
+                    {%- else -%}
+                      <td property="{{curies(prop.identifier)}}">
+                        {% if obj.startswith('http') %}
+                          <a href="{{ obj }}">...{{ obj[-20:] }}</a>
+                        {% else %}
+                          {{ obj }}
+                        {% endif %}
+                      </td>
+                    {%- endif %}
+                  </tr>
+                {% endfor %}
+              </table>
             </article>
           {%- endfor %}
         {% endfor %}
-        <article>
-        </article>
       </aside>
     </article>
     <!-- TODO: footer with format links (Turtle, RDF/XML) -->

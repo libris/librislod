@@ -1,6 +1,30 @@
 
+body {
+  background: url(http://sondera.kb.se/images/bg.gif) 50% 4px
+}
+
 h1, h2, h3, h4 {
   color: #e24735;
   font-family: georgia, serif;
 }
 
+.db {
+  color: #d8902b;
+}
+
+.container {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-top: none;
+  border-bottom: none;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+  padding: 0 2em 0;
+}
+
+figure {
+  margin: 0.2em 11px 0.6em;
+}
+
+aside .table th {
+   text-align: right;
+}
