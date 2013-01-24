@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ l10n(this.objects(DCES.title)) }}{% endblock %}
+{% block main %}
+  <article typeof="{{type_curies(this)}}" class="span12">
+    <hgroup>
+      <h1 property="{{curies(DCES.title)}}">{{l10n(this.objects(DCES.title))}}</h1>
+      {% for creator in this.objects(DCES.creator) | sort %}
+        {% if is_resource(creator) %}
+          <link property="{{curies(DCES.creator)}}" href="{{creator}}" />
+        {% else %}
+          <h2>
+            <i property="{{curies(DCES.creator)}}">{{creator}}</i>
+          </h2>
+        {% endif %}
+      {% endfor %}
+    </hgroup>
+    {% for desc in this.objects(DCES.description) | sort %}
+      <p property="{{curies(DCES.description)}}" lang="{{desc.language}}">{{desc}}</p>
+    {% endfor %}
+    <section class="well">
+      <table>
+        <tr>
+          <th>Datum</th>
+          <td property="{{curies(DCES.date)}}">{{this.value(DCES.date)}}</td>
+        </tr>
+        <tr>
+          <th>Utgivare</th>
+          <td property="{{curies(DCES.publisher)}}">{{this.value(DCES.publisher)}}</td>
+        </tr>
+      </table>
+    </section>
+  </article>
+{% endblock main %}

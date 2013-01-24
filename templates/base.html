@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html prefix="{{prefixes}}" lang="{{lang}}">
+  <head vocab="http://www.iana.org/assignments/relation/">
+    <meta charset="utf-8"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <title>{% block title %}untitled{% endblock title %} | LIBRIS</title>
+    <link rel="source" href="{{this.identifier}}"/>
+    {% block head_extras %}{% endblock head_extras %}
+  </head>
+  <body vocab="{{vocab}}">
+    {% block main %}
+    {% endblock main %}
+  </body>
+</html>

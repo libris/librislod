@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ this.value(LIBRIS.key) }}{% endblock %}
+{% block main %}
+  <article typeof="{{type_curies(this)}}" class="span12">
+    <h1 property="{{curies(DCES.title)}}">{{this.value(LIBRIS.key)}}</h1>
+    <p><a property="rdf:type" href="{{this.value(RDF.type).identifier}}">[type]</a><p>
+    {% for name in this.objects(FOAF.name) | sort %}
+      <div><i>{{name}}</i></div>
+    {% endfor %}
+    <section>
+      <h2>Verk</h2>
+      {% for work in this.subjects(DCES.creator) | sort %}
+        <div>
+          <a href="{{work.identifier}}">{{work.identifier}}</a>
+        </div>
+      {% endfor %}
+      <p>
+    </section>
+    <section>
+      <h2>Se även</h2>
+      {% for rel in [RDFS.seeAlso, OWL.sameAs, SKOS.exactMatch] %}
+        {% for related in this.objects(rel) | sort %}
+          <div>
+            <a property="{{curies(rel)}}" href="{{related.identifier}}"
+              >{{related.identifier}}</a>
+          </div>
+        {% endfor %}
+      {% endfor %}
+    </section>
+  </article>
+{% endblock main %}
+
