@@ -4,7 +4,7 @@ from rdflib import Graph, URIRef, Namespace, RDF, RDFS, OWL, XSD
 from rdflib.resource import Resource
 from rdflib.namespace import NamespaceManager, ClosedNamespace
 import requests
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, redirect
 
 
 SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
@@ -47,6 +47,9 @@ def l10n(literals, lang=LANG):
 def is_resource(o):
     return isinstance(o, Resource)
 
+def described(resource):
+    return (resource.identifier, None, None) in resource.graph
+
 
 # {bib | auth | hld?} / {id}
 resource_base = "http://libris.kb.se/resource/"
@@ -55,9 +58,10 @@ data_base = "http://data.libris.kb.se/open/"
 endpoint = u"http://libris.kb.se/sparql"
 query_templates = {}
 def load_query_templates():
-    with open(os.path.join(os.path.dirname(__file__), "auth.rq")) as f:
-        text = rq_prefixes + "\n"*2 + f.read()
-        query_templates['auth'] = Template(text).substitute
+    for name in ['auth', 'index']:
+        with open(os.path.join(os.path.dirname(__file__), name + '.rq')) as f:
+            text = rq_prefixes + "\n"*2 + f.read()
+            query_templates[name] = Template(text).substitute
 load_query_templates()
 
 def get_resource(data, uri):
@@ -66,9 +70,9 @@ def get_resource(data, uri):
     graph.namespace_manager = ns_mgr
     return graph.resource(uri)
 
-def run_query(rq):
+def run_query(rq, accept='text/turtle'):
     return requests.post(endpoint, data={'query': rq},
-            headers={'Accept': 'text/turtle'})
+            headers={'Accept': accept})
 
 mimetypes = {
     'html': 'text/html',
@@ -84,7 +88,26 @@ mime_names = dict((v, k) for k, v in mimetypes.items())
 
 accept_mimetypes = mimetypes.values()
 
+
 app = Flask(__name__)
+
+@app.before_request
+def reload_templates():
+    if app.debug:
+        load_query_templates()
+
+
+@app.route('/')
+def index():
+    return redirect('/auth')
+
+
+@app.route('/auth')
+def auth_index():
+    res = run_query(rq_prefixes + query_templates['index']())
+    return res.content, 200, {'Content-Type': 'text/plain'}
+    #return render_template("index.html")
+
 
 @app.route('/<rtype>/<rid>')
 def view(rtype, rid):
@@ -100,9 +123,6 @@ def view(rtype, rid):
         fmt = mime_names.get(req_mime)
 
     uri = URIRef(resource_base + path)
-
-    if app.debug:
-        load_query_templates()
 
     qt = query_templates[rtype]
     if qt:
@@ -121,6 +141,7 @@ def view(rtype, rid):
         ctx = {'prefixes': rdfa_prefixes, 'vocab': vocab, 'l10n': l10n,
                 'type_curies': type_curies, 'curies': curies,
                 'is_resource': is_resource,
+                'described': described,
                 'this': this, 'lang': LANG}
         ctx.update(namespaces)
         return render_template(rtype + '.html', **ctx)

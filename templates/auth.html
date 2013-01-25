@@ -1,54 +1,58 @@
 {% extends "base.html" %}
 {% block title %}{{ this.value(LIBRIS.key) }}{% endblock %}
+{% block head_extras %}
+{% endblock head_extras %}
+  <link rel="source" href="{{this.identifier}}"/>
 {% block main %}
-  <div class="container">
-    <article typeof="{{type_curies(this)}}" class="row">
-      <div class="span7">
-        <h2 class="db">LIBRIS</h2>
-        <h1 property="{{curies(LIBRIS.key)}}">{{this.value(LIBRIS.key)}}</h1>
-        {#
-        <p><a property="rdf:type" href="{{this.value(RDF.type).identifier}}">[type]</a><p>
-        {% for name in this.objects(FOAF.name) | sort %}
-          <div><i>{{name}}</i></div>
+  <article typeof="{{type_curies(this)}}" class="row">
+    <div class="span7">
+      <h2 class="db">LIBRIS</h2>
+      <h1 property="{{curies(LIBRIS.key)}}">{{this.value(LIBRIS.key)}}</h1>
+      {#
+      <p><a property="rdf:type" href="{{this.value(RDF.type).identifier}}">[type]</a><p>
+      {% for name in this.objects(FOAF.name) | sort %}
+        <div><i>{{name}}</i></div>
+      {% endfor %}
+      #}
+      <figure class="pull-right">
+        <img class="img-polaroid" property="{{curies(DBPOWL.thumbnail)}}"
+              src="{{ this.value(DBPOWL.thumbnail).identifier }}" />
+      </figure>
+      <p property="{{ curies(DBPOWL['abstract']) }}">
+        {{ this.value(DBPOWL['abstract']) }}
+      </p>
+      <section>
+        <h2>Verk</h2>
+        {% for work in this.subjects(DCES.creator) | sort %}
+          <div>
+            <a property="{{curies(DCES.creator)}}" href="{{work.identifier}}"
+              ><i class=" icon-book"></i> {{work.value(DCES.title)}}</a>
+          </div>
         {% endfor %}
-        #}
-        <figure class="pull-right">
-          <img class="img-polaroid" src="{{ this.value(DBPOWL.thumbnail).identifier }}" />
-        </figure>
-        <p property="{{ curies(DBPOWL['abstract']) }}">
-          {{ this.value(DBPOWL['abstract']) }}
-        </p>
-        <section>
-          <h2>Verk</h2>
-          {% for work in this.subjects(DCES.creator) | sort %}
-            <div>
-              <a href="{{work.identifier}}"
-                ><i class=" icon-book"></i> {{work.value(DCES.title)}}</a>
-            </div>
-          {% endfor %}
-          <p>
-        </section>
-      </div>
-      <aside class="span5">
-        <h2><i>Se även</i></h2>
-        {# for rel in [RDFS.seeAlso, OWL.sameAs, SKOS.exactMatch] #}
-        {% for rel in [OWL.sameAs] %}
-          {% for same in this.objects(rel) | sort %}
-            <article class="well">
-              <h2 class="db">{% if "dbpedia.org" in same.identifier -%}
-                  DBPedia
-                {%- elif "viaf.org" in same.identifier -%}
-                  VIAF
-                {%- elif "id.riksarkivet.se" in same.identifier -%}
-                  NAD
-                {%- elif "kulturarvsdata.se" in same.identifier -%}
-                  K-samsök
-                {%- else -%}
-                  {{same.identifier}}
-                  {%- endif %}
-                <a property="{{curies(rel)}}" href="{{same.identifier}}"
-                  class="pull-right"><i class="icon-arrow-right"></i></a>
-              </h2>
+        <p>
+      </section>
+    </div>
+    <aside class="span5">
+      <h2><i>Se även</i></h2>
+      {# for rel in [RDFS.seeAlso, OWL.sameAs, SKOS.exactMatch] #}
+      {% for rel in [OWL.sameAs] %}
+        {% for same in this.objects(rel) | sort %}
+          <article class="well">
+            <h2 class="db">{% if "dbpedia.org" in same.identifier -%}
+                DBPedia
+              {%- elif "viaf.org" in same.identifier -%}
+                VIAF
+              {%- elif "id.riksarkivet.se" in same.identifier -%}
+                NAD
+              {%- elif "kulturarvsdata.se" in same.identifier -%}
+                K-samsök
+              {%- else -%}
+                {{same.identifier}}
+                {%- endif %}
+              <a property="{{curies(rel)}}" href="{{same.identifier}}"
+                class="pull-right"><i class="icon-arrow-right"></i></a>
+            </h2>
+            {% if described(same) %}
               <table class="table table-condensed">
                 {% for prop, obj in same.predicate_objects() | sort %}
                   <tr>
@@ -72,12 +76,15 @@
                   </tr>
                 {% endfor %}
               </table>
-            </article>
-          {%- endfor %}
-        {% endfor %}
-      </aside>
-    </article>
-    <!-- TODO: footer with format links (Turtle, RDF/XML) -->
-  </div>
+            {% endif %}
+          </article>
+        {%- endfor %}
+      {% endfor %}
+    </aside>
+  </article>
+  <footer>
+    Format:
+    <a href="?format=ttl"><i class="icon-file"></i> Turtle</a>,
+    <a href="?format=xml"><i class="icon-file"></i> RDF/XML</a>
+  </footer>
 {% endblock main %}
-

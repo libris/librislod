@@ -1,0 +1,12 @@
+prefix foaf: <http://xmlns.com/foaf/0.1/>
+prefix dbpowl: <http://dbpedia.org/ontology/>
+
+select
+(COUNT(?person) as ?persons_count)
+(COUNT(?org) as ?org_count) {
+  {
+    ?person a foaf:Person .
+  } union {
+    ?org a foaf:Organization .
+  }
+}

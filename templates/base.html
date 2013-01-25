@@ -5,11 +5,12 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     <title>{% block title %}untitled{% endblock title %} | LIBRIS</title>
-    <link rel="source" href="{{this.identifier}}"/>
     {% block head_extras %}{% endblock head_extras %}
   </head>
   <body vocab="{{vocab}}">
-    {% block main %}
-    {% endblock main %}
+    <div class="container">
+      {% block main %}
+      {% endblock main %}
+    </div>
   </body>
 </html>

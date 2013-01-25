@@ -1,0 +1,8 @@
+
+construct {
+  ?s
+    owl:sameAs ?o;
+    foaf:name ?name .
+  } where {
+  ?s owl:sameAs ?o . ?s <http://xmlns.com/foaf/0.1/#name> ?name .
+}
