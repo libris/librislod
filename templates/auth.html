@@ -48,9 +48,14 @@
                 K-samsök
               {%- else -%}
                 {{same.identifier}}
-                {%- endif %}
-              <a property="{{curies(rel)}}" href="{{same.identifier}}"
-                class="pull-right"><i class="icon-arrow-right"></i></a>
+              {%- endif %}
+              {%- if "kulturarvsdata.se" in same.identifier -%}
+                <a property="{{curies(rel)}}" href="{{same.identifier.replace('kulturarvsdata.se/', 'kringla.nu/kringla/objekt?referens=')}}"
+                  class="pull-right"><i class="icon-arrow-right"></i></a>
+              {%- else -%}
+                <a property="{{curies(rel)}}" href="{{same.identifier}}"
+                  class="pull-right"><i class="icon-arrow-right"></i></a>
+              {%- endif %}
             </h2>
             {% if described(same) %}
               <table class="table table-condensed">
