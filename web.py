@@ -138,11 +138,10 @@ def view(rtype, rid):
 
     if fmt in ('html', 'xhtml'):
         curies = graph.qname
-        ctx = {'prefixes': rdfa_prefixes, 'vocab': vocab, 'l10n': l10n,
-                'type_curies': type_curies, 'curies': curies,
-                'is_resource': is_resource,
-                'described': described,
-                'this': this, 'lang': LANG}
+        ctx = {'prefixes': rdfa_prefixes, 'vocab': vocab, 'lang': LANG,
+                'type_curies': type_curies, 'curies': curies, 'l10n': l10n,
+                'is_resource': is_resource, 'described': described,
+                'this': this, 'path': path}
         ctx.update(namespaces)
         return render_template(rtype + '.html', **ctx)
     else:
