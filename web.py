@@ -27,13 +27,9 @@ ns_mgr = NamespaceManager(Graph())
 for k, v in namespaces.items():
     ns_mgr.bind(k.lower(), v)
 
-LANG = 'sv'
-
-rdfa_prefixes = u"\n    ".join("%s: %s" % (k.lower(), v) for k, v in namespaces.items()
-        if k not in u'RDF RDFS OWL XSD')
-vocab = u"http://schema.org/"
-
 rq_prefixes = u"\n".join("prefix %s: <%s>" % (k.lower(), v) for k, v in namespaces.items())
+
+LANG = 'sv'
 
 def type_curies(r):
     return " ".join(t.qname() for t in r.objects(RDF.type))
@@ -74,6 +70,9 @@ def run_query(rq, accept='text/turtle'):
     return requests.post(endpoint, data={'query': rq},
             headers={'Accept': accept})
 
+
+app = Flask(__name__)
+
 mimetypes = {
     'html': 'text/html',
     'xhtml': 'application/xhtml+xml',
@@ -88,8 +87,20 @@ mime_names = dict((v, k) for k, v in mimetypes.items())
 
 accept_mimetypes = mimetypes.values()
 
+vocab = u"http://schema.org/"
 
-app = Flask(__name__)
+prefixes = u"\n    ".join("%s: %s" % (k.lower(), v) for k, v in namespaces.items()
+        if k not in u'RDF RDFS OWL XSD')
+
+view_context = {
+    var: globals()[var] for var in (
+            'prefixes', 'vocab',
+            'type_curies', 'l10n',
+            'is_resource', 'described')
+    }
+view_context.update(namespaces,
+        libris_link=lambda ref: ref.replace(resource_base, "/"),
+        kringla_link=lambda ref: ref.replace("kulturarvsdata.se/", "kringla.nu/kringla/objekt?referens="))
 
 @app.before_request
 def reload_templates():
@@ -107,7 +118,6 @@ def auth_index():
     res = run_query(rq_prefixes + query_templates['index']())
     return res.content, 200, {'Content-Type': 'text/plain'}
     #return render_template("index.html")
-
 
 @app.route('/<rtype>/<rid>')
 def view(rtype, rid):
@@ -137,12 +147,7 @@ def view(rtype, rid):
     graph = this.graph
 
     if fmt in ('html', 'xhtml'):
-        curies = graph.qname
-        ctx = {'prefixes': rdfa_prefixes, 'vocab': vocab, 'lang': LANG,
-                'type_curies': type_curies, 'curies': curies, 'l10n': l10n,
-                'is_resource': is_resource, 'described': described,
-                'this': this, 'path': path}
-        ctx.update(namespaces)
+        ctx = dict(view_context, lang=LANG, this=this, path=path, curies=graph.qname)
         return render_template(rtype + '.html', **ctx)
     else:
         headers = {'Content-Type': mimetypes.get(fmt) or 'text/plain'}
