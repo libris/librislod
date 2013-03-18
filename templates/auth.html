@@ -16,7 +16,7 @@
       #}
       <figure class="pull-right">
         <img class="img-polaroid" property="{{curies(DBPOWL.thumbnail)}}"
-              src="{{ this.value(DBPOWL.thumbnail).identifier }}" />
+            src="{{ this.value(DBPOWL.thumbnail).identifier }}" />
       </figure>
       <p property="{{ curies(DBPOWL['abstract']) }}">
         {{ this.value(DBPOWL['abstract']) }}
@@ -27,6 +27,21 @@
           <div>
             <a property="{{curies(DCES.creator)}}" href="{{work.identifier}}"
               ><i class=" icon-book"></i> {{work.value(DCES.title)}}</a>
+          </div>
+        {% endfor %}
+        <p>
+      </section>
+      <section>
+        <h2>Influerad av</h2>
+        {% for influence in this.objects(DBPOWL.influencedBy) | sort %}
+          <div>
+            {% if influence.value(DBPOWL.thumbnail) %}
+              <img class="img-polaroid" width="32"
+                  src="{{ influence.value(DBPOWL.thumbnail).identifier }}" />
+            {% endif %}
+            <a property="{{curies(DBPOWL.influencedBy)}}"
+              href="{{libris_link(influence.identifier)}}"
+              >{{influence.value(FOAF.name)}}</a>
           </div>
         {% endfor %}
         <p>
@@ -50,7 +65,7 @@
                 {{same.identifier}}
               {%- endif %}
               {%- if "kulturarvsdata.se" in same.identifier -%}
-                <a property="{{curies(rel)}}" href="{{same.identifier.replace('kulturarvsdata.se/', 'kringla.nu/kringla/objekt?referens=')}}"
+                <a property="{{curies(rel)}}" href="{{kringla_link(same.identifier)}}"
                   class="pull-right"><i class="icon-arrow-right"></i></a>
               {%- else -%}
                 <a property="{{curies(rel)}}" href="{{same.identifier}}"

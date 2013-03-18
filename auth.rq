@@ -8,7 +8,12 @@ construct {
 
     $this
       dbpowl:abstract ?abstract;
-      dbpowl:thumbnail ?thumbnail .
+      dbpowl:thumbnail ?thumbnail;
+      dbpowl:influencedBy ?influence .
+
+    ?influence
+      foaf:name ?influence_name;
+      dbpowl:thumbnail ?influence_thumbnail .
 
     $this owl:sameAs ?ksam_this .
     ?ksam_this ?ksam_p ?ksam_o .
@@ -34,7 +39,7 @@ construct {
         filter(langMatches(lang(?item_title), 'sv'))
       } limit 50
 
-    ## DBPedia endpoint
+    # DBPedia endpoint
     } union {
 
       service <http://dbpedia.org/sparql> {
@@ -44,6 +49,17 @@ construct {
         optional {
           ?canonical dbpowl:thumbnail ?thumbnail .
         }
+        optional {
+          ?canonical dbpowl:influencedBy ?canonical_influence .
+          ?canonical_influence foaf:name ?influence_name .
+          optional { ?canonical_influence dbpowl:thumbnail ?influence_thumbnail }
+        }
+      }
+      # workaround for shaky bound implementation..
+      BIND(COALESCE(?canonical_influence, ?_) as ?bound_canonical_influence)
+      optional {
+        FILTER(BOUND(?bound_canonical_influence))
+        ?influence owl:sameAs ?canonical_influence .
       }
 
     # RAA endpoint
@@ -51,19 +67,21 @@ construct {
 
       service <http://192.121.221.30/sparql/raa> {
         {
-          ?ksam_this owl:sameAs ?canonical .
-        } union {
           ?ksam_this owl:sameAs $this .
+        } union {
+          ?ksam_this owl:sameAs ?canonical .
         }
         ?ksam_this ?ksam_p ?ksam_o .
+        #?ksam_this ksamsok:fullName ?fullName .
       }
 
     # RA endpoint
     } union {
 
       service <http://192.121.221.30/sparql/ra> {
-        ?nad_this owl:sameAs ?canonical;
-          ?nad_p ?nad_o .
+        ?nad_this owl:sameAs ?canonical .
+        #?nad_this foaf:name ?fullName .
+        ?nad_this ?nad_p ?nad_o .
       }
 
     }
