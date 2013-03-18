@@ -20,14 +20,15 @@ LIBRIS = Namespace("http://libris.kb.se/vocabulary/experimental#")
 KSAMSOK = Namespace("http://kulturarvsdata.se/ksamsok#")
 
 
-namespaces = dict((k, o) for k, o in vars().items()
-        if isinstance(o, (Namespace, ClosedNamespace)))
+namespaces = {k: o for k, o in vars().items()
+        if isinstance(o, (Namespace, ClosedNamespace))}
 
 ns_mgr = NamespaceManager(Graph())
 for k, v in namespaces.items():
     ns_mgr.bind(k.lower(), v)
 
-rq_prefixes = u"\n".join("prefix %s: <%s>" % (k.lower(), v) for k, v in namespaces.items())
+rq_prefixes = u"\n".join("prefix %s: <%s>" % (k.lower(), v)
+        for k, v in namespaces.items())
 
 LANG = 'sv'
 
@@ -43,7 +44,7 @@ def l10n(literals, lang=LANG):
 def is_resource(o):
     return isinstance(o, Resource)
 
-def described(resource):
+def is_described(resource):
     return (resource.identifier, None, None) in resource.graph
 
 
@@ -60,11 +61,11 @@ def load_query_templates():
             query_templates[name] = Template(text).substitute
 load_query_templates()
 
-def get_resource(data, uri):
+def to_graph(data):
     graph = Graph()
     graph.parse(data=data, format='turtle')
     graph.namespace_manager = ns_mgr
-    return graph.resource(uri)
+    return graph
 
 def run_query(rq, accept='text/turtle'):
     return requests.post(endpoint, data={'query': rq},
@@ -83,7 +84,7 @@ mimetypes = {
     'json': 'application/json',
     'jsontxt': 'text/json'
 }
-mime_names = dict((v, k) for k, v in mimetypes.items())
+mime_names = {v: k for k, v in mimetypes.items()}
 
 accept_mimetypes = mimetypes.values()
 
@@ -92,12 +93,8 @@ vocab = u"http://schema.org/"
 prefixes = u"\n    ".join("%s: %s" % (k.lower(), v) for k, v in namespaces.items()
         if k not in u'RDF RDFS OWL XSD')
 
-view_context = {
-    var: globals()[var] for var in (
-            'prefixes', 'vocab',
-            'type_curies', 'l10n',
-            'is_resource', 'described')
-    }
+view_context = {var: globals()[var] for var in
+    ('prefixes', 'vocab', 'type_curies', 'l10n', 'is_resource', 'is_described')}
 view_context.update(namespaces,
         libris_link=lambda ref: ref.replace(resource_base, "/"),
         kringla_link=lambda ref: ref.replace("kulturarvsdata.se/", "kringla.nu/kringla/objekt?referens="))
@@ -143,11 +140,11 @@ def view(rtype, rid):
     else:
         url = data_base + path + '.n3'
         res = requests.get(url)
-    this = get_resource(res.content, uri)
-    graph = this.graph
+    graph = to_graph(res.content)
+    this = graph.resource(uri)
 
     if fmt in ('html', 'xhtml'):
-        ctx = dict(view_context, lang=LANG, this=this, path=path, curies=graph.qname)
+        ctx = dict(view_context, path=path, lang=LANG, this=this, curies=graph.qname)
         return render_template(rtype + '.html', **ctx)
     else:
         headers = {'Content-Type': mimetypes.get(fmt) or 'text/plain'}

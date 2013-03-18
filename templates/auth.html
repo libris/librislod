@@ -72,7 +72,7 @@
                   class="pull-right"><i class="icon-arrow-right"></i></a>
               {%- endif %}
             </h2>
-            {% if described(same) %}
+            {% if is_described(same) %}
               <table class="table table-condensed">
                 {% for prop, obj in same.predicate_objects() | sort %}
                   <tr>
