@@ -1,5 +1,6 @@
 from string import Template
 import os
+import itertools
 from rdflib import Graph, URIRef, Namespace, RDF, RDFS, OWL, XSD
 from rdflib.resource import Resource
 from rdflib.namespace import NamespaceManager, ClosedNamespace
@@ -50,7 +51,7 @@ def is_described(resource):
 
 # {bib | auth | hld?} / {id}
 resource_base = "http://libris.kb.se/resource/"
-data_base = "http://data.libris.kb.se/open/"
+#data_base = "http://data.libris.kb.se/open/"
 
 endpoint = u"http://libris.kb.se/sparql"
 query_templates = {}
@@ -72,8 +73,6 @@ def run_query(rq, accept='text/turtle'):
             headers={'Accept': accept})
 
 
-app = Flask(__name__)
-
 mimetypes = {
     'html': 'text/html',
     'xhtml': 'application/xhtml+xml',
@@ -88,16 +87,28 @@ mime_names = {v: k for k, v in mimetypes.items()}
 
 accept_mimetypes = mimetypes.values()
 
-vocab = u"http://schema.org/"
+def _conneg_format(suffix=None):
+    fmt = request.args.get('format') or suffix
+    req_mime = request.accept_mimetypes.best_match(accept_mimetypes, 'text/html')
+    if req_mime and not fmt:
+        fmt = mime_names.get(req_mime)
+    return fmt
 
+
+vocab = u"http://schema.org/"
 prefixes = u"\n    ".join("%s: %s" % (k.lower(), v) for k, v in namespaces.items()
         if k not in u'RDF RDFS OWL XSD')
 
 view_context = {var: globals()[var] for var in
     ('prefixes', 'vocab', 'type_curies', 'l10n', 'is_resource', 'is_described')}
+view_context.update(vars(itertools))
+view_context.update(vars(__builtins__))
 view_context.update(namespaces,
         libris_link=lambda ref: ref.replace(resource_base, "/"),
         kringla_link=lambda ref: ref.replace("kulturarvsdata.se/", "kringla.nu/kringla/objekt?referens="))
+
+
+app = Flask(__name__)
 
 @app.before_request
 def reload_templates():
@@ -113,8 +124,10 @@ def index():
 @app.route('/auth')
 def auth_index():
     res = run_query(rq_prefixes + query_templates['index']())
-    return res.content, 200, {'Content-Type': 'text/plain'}
-    #return render_template("index.html")
+    graph = to_graph(res.content)
+    ctx = dict(view_context, lang=LANG, graph=graph)
+    return render_template("index.html", **ctx)
+
 
 @app.route('/<rtype>/<rid>')
 def view(rtype, rid):
@@ -124,22 +137,17 @@ def view(rtype, rid):
         suffix = None
     path = rtype + '/' + rid
 
-    fmt = request.args.get('format') or suffix
-    req_mime = request.accept_mimetypes.best_match(accept_mimetypes, 'text/html')
-    if req_mime and not fmt:
-        fmt = mime_names.get(req_mime)
-
+    fmt = _conneg_format(suffix)
     uri = URIRef(resource_base + path)
-
     qt = query_templates[rtype]
-    if qt:
-        rq = qt(this=uri.n3())
-        if fmt == 'rq':
-            return rq, 200, {'Content-Type': 'text/plain'}
-        res = run_query(rq)
-    else:
-        url = data_base + path + '.n3'
-        res = requests.get(url)
+    #if qt:
+    rq = qt(this=uri.n3())
+    if fmt == 'rq':
+        return rq, 200, {'Content-Type': 'text/plain'}
+    res = run_query(rq)
+    #else:
+    #    url = data_base + path + '.n3'
+    #    res = requests.get(url)
     graph = to_graph(res.content)
     this = graph.resource(uri)
 

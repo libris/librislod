@@ -1,8 +1,27 @@
-
 construct {
-  ?s
-    owl:sameAs ?o;
-    foaf:name ?name .
-  } where {
-  ?s owl:sameAs ?o . ?s <http://xmlns.com/foaf/0.1/#name> ?name .
+
+    ?auth a ?type;
+        libris:key ?key;
+        dbpowl:influencedBy ?influence .
+
+    ?influence libris:key ?influence_key .
+
+} where {
+
+      service <http://dbpedia.org/sparql> {
+        ?canonical dbpowl:influencedBy ?canonical_influence .
+      }
+      ?auth a ?type;
+        owl:sameAs ?canonical;
+        libris:key ?key .
+      ?influence
+        owl:sameAs ?canonical_influence;
+        libris:key ?influence_key .
+
 }
+
+#construct {
+#  ?s owl:sameAs ?same; libris:key ?name .
+#} where {
+#  ?s owl:sameAs ?same . ?s libris:key ?name .
+#} LIMIT 100

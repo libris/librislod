@@ -4,6 +4,12 @@
   <article class="row">
     <div class="span12">
       <h1>Index</h1>
+      {% for person in map(graph.resource, graph.subjects(RDF.type, FOAF.Person)) %}
+        <div>
+          <a href="{{ libris_link(person.identifier) }}">{{ person.value(LIBRIS.key) }}</a>
+          (influerad av {{ len(list(person.objects(DBPOWL.influencedBy))) }})
+        </div>
+      {% endfor %}
     </div>
   </article>
 {% endblock main %}
