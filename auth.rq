@@ -62,27 +62,27 @@ construct {
         ?influence owl:sameAs ?canonical_influence .
       }
 
-    # RAA endpoint
-    } union {
+    ## RAA endpoint
+    #} union {
 
-      service <http://192.121.221.30/sparql/raa> {
-        {
-          ?ksam_this owl:sameAs $this .
-        } union {
-          ?ksam_this owl:sameAs ?canonical .
-        }
-        ?ksam_this ?ksam_p ?ksam_o .
-        #?ksam_this ksamsok:fullName ?fullName .
-      }
+    #  service <http://192.121.221.30/sparql/raa> {
+    #    {
+    #      ?ksam_this owl:sameAs $this .
+    #    } union {
+    #      ?ksam_this owl:sameAs ?canonical .
+    #    }
+    #    ?ksam_this ?ksam_p ?ksam_o .
+    #    #?ksam_this ksamsok:fullName ?fullName .
+    #  }
 
-    # RA endpoint
-    } union {
+    ## RA endpoint
+    #} union {
 
-      service <http://192.121.221.30/sparql/ra> {
-        ?nad_this owl:sameAs ?canonical .
-        #?nad_this foaf:name ?fullName .
-        ?nad_this ?nad_p ?nad_o .
-      }
+    #  service <http://192.121.221.30/sparql/ra> {
+    #    ?nad_this owl:sameAs ?canonical .
+    #    #?nad_this foaf:name ?fullName .
+    #    ?nad_this ?nad_p ?nad_o .
+    #  }
 
     }
 
