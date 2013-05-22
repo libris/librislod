@@ -73,6 +73,7 @@
               {%- endif %}
             </h2>
             {% if is_described(same) %}
+
               <table class="table table-condensed">
                 {% for prop, obj in same.predicate_objects() | sort %}
                   <tr>
@@ -96,6 +97,18 @@
                   </tr>
                 {% endfor %}
               </table>
+
+              {%- if "kulturarvsdata.se" in same.identifier -%}
+                {% for hub in same.subjects(KSAMSOK.architect) %}
+                  <div>
+                    <b>{{ same.value(KSAMSOK.itemType).qname() }}</b>
+                    {% for name in hub.objects(KSAMSOK.name) %}
+                      <span class="label label-info">{{ name }}</span>
+                    {% endfor %}
+                  </div>
+                {% endfor %}
+              {%- endif %}
+
             {% endif %}
           </article>
         {%- endfor %}

@@ -15,15 +15,19 @@ construct {
       foaf:name ?influence_name;
       dbpowl:thumbnail ?influence_thumbnail .
 
-    $this owl:sameAs ?ksam_this .
-    ?ksam_this ?ksam_p ?ksam_o .
+    $this owl:sameAs?ksam_this .
+    ?ksam_this ksamsok:itemType <http://kulturarvsdata.se/resurser/EntityType#person> ;
+      ksamsok:itemLabel ?ksam_name .
 
-    $this owl:sameAs ?nad_this .
-    ?nad_this ?nad_p ?nad_o .
+    ?ksam_hubobj a ?ksam_hubobj_type;
+      ksamsok:name ?ksam_hubobj_name;
+      ksamsok:architect ?ksam_this .
+
+    ?ksam_thing ksamsok:itemType ?ksam_thing_type;
+      ksamsok:url ?ksam_thing_url;
+      ksamsok:context ?ksam_hubobj .
 
 } where {
-
-    $this owl:sameAs ?canonical .
 
     # LIBRIS (default) endpoint
     {
@@ -41,6 +45,8 @@ construct {
 
     # DBPedia endpoint
     } union {
+
+      $this owl:sameAs ?canonical .
 
       service <http://dbpedia.org/sparql> {
         ?canonical dbpowl:abstract ?abstract .
@@ -63,26 +69,30 @@ construct {
       }
 
     ## RAA endpoint
-    #} union {
+    } union {
 
-    #  service <http://192.121.221.30/sparql/raa> {
-    #    {
-    #      ?ksam_this owl:sameAs $this .
-    #    } union {
-    #      ?ksam_this owl:sameAs ?canonical .
-    #    }
-    #    ?ksam_this ?ksam_p ?ksam_o .
-    #    #?ksam_this ksamsok:fullName ?fullName .
-    #  }
+      service <http://193.10.40.180:8080/ksamsok/query> {
 
-    ## RA endpoint
-    #} union {
+        ?ksam_this ksamsok:itemType <http://kulturarvsdata.se/resurser/EntityType#person> ;
+          owl:sameAs $this;
+          ksamsok:itemLabel ?ksam_name .
 
-    #  service <http://192.121.221.30/sparql/ra> {
-    #    ?nad_this owl:sameAs ?canonical .
-    #    #?nad_this foaf:name ?fullName .
-    #    ?nad_this ?nad_p ?nad_o .
-    #  }
+        ?ksam_hubobj
+          ksamsok:name ?ksam_hubobj_name;
+          ksamsok:architect ?ksam_this; # ksamsok:owner ...
+          a ?ksam_hubobj_type .
+
+        #{ select ?ksam_thing ?ksam_thing_type ?ksam_thing_url  {
+        #  ?ksam_thing ksamsok:context ?ksam_hubobj .
+        #  #FILTER(?ksam_repr_rel in (ksamsok:context , ksamsok:image))
+        #  ?ksam_thing
+        #    ksamsok:itemType ?ksam_thing_type; # <http://kulturarvsdata.se/resurser/EntityType#building>;
+        #    ksamsok:url ?ksam_thing_url .
+        #} limit 1 }
+
+
+        #?ksam_this ksamsok:fullName ?fullName .
+      }
 
     }
 
