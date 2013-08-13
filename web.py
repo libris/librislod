@@ -1,11 +1,10 @@
-from string import Template
 import os
 import itertools
 from rdflib import Graph, URIRef, Namespace, RDF, RDFS, OWL, XSD
 from rdflib.resource import Resource
 from rdflib.namespace import NamespaceManager, ClosedNamespace
 import requests
-from flask import Flask, request, render_template, redirect
+from flask import Flask, request, render_template, render_template_string, redirect
 
 
 SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
@@ -21,15 +20,15 @@ LIBRIS = Namespace("http://libris.kb.se/vocabulary/experimental#")
 KSAMSOK = Namespace("http://kulturarvsdata.se/ksamsok#")
 
 
-namespaces = {k: o for k, o in vars().items()
+NAMESPACES = {k: o for k, o in vars().items()
         if isinstance(o, (Namespace, ClosedNamespace))}
 
 ns_mgr = NamespaceManager(Graph())
-for k, v in namespaces.items():
+for k, v in NAMESPACES.items():
     ns_mgr.bind(k.lower(), v)
 
 rq_prefixes = u"\n".join("prefix %s: <%s>" % (k.lower(), v)
-        for k, v in namespaces.items())
+        for k, v in NAMESPACES.items())
 
 LANG = 'sv'
 
@@ -50,16 +49,24 @@ def is_described(resource):
 
 
 # {bib | auth | hld?} / {id}
-resource_base = "http://libris.kb.se/resource/"
+RESOURCE_BASE = "http://libris.kb.se/resource/"
 #data_base = "http://data.libris.kb.se/open/"
 
-endpoint = u"http://libris.kb.se/sparql"
+SERVICES = {
+    "dbp": "http://dbpedia.org/sparql",
+    #"raa": "http://193.10.40.180:8080/ksamsok/query",
+    "raa": "http://192.121.221.30/sparql/raa",
+    "ra": "http://192.121.221.30/sparql/ra"
+}
+ENDPOINT = u"http://libris.kb.se/sparql"
+
 query_templates = {}
 def load_query_templates():
     for name in ['auth', 'index']:
         with open(os.path.join(os.path.dirname(__file__), name + '.rq')) as f:
             text = rq_prefixes + "\n"*2 + f.read()
-            query_templates[name] = Template(text).substitute
+            query_templates[name] = (lambda text=text, **kws:
+                    render_template_string(text, **kws))
 load_query_templates()
 
 def to_graph(data):
@@ -69,11 +76,11 @@ def to_graph(data):
     return graph
 
 def run_query(rq, accept='text/turtle'):
-    return requests.post(endpoint, data={'query': rq},
+    return requests.post(ENDPOINT, data={'query': rq},
             headers={'Accept': accept})
 
 
-mimetypes = {
+MIMETYPES = {
     'html': 'text/html',
     'xhtml': 'application/xhtml+xml',
     'ttl': 'text/turtle',
@@ -83,9 +90,9 @@ mimetypes = {
     'json': 'application/json',
     'jsontxt': 'text/json'
 }
-mime_names = {v: k for k, v in mimetypes.items()}
+mime_names = {v: k for k, v in MIMETYPES.items()}
 
-accept_mimetypes = mimetypes.values()
+accept_mimetypes = MIMETYPES.values()
 
 def _conneg_format(suffix=None):
     fmt = request.args.get('format') or suffix
@@ -96,15 +103,15 @@ def _conneg_format(suffix=None):
 
 
 vocab = u"http://schema.org/"
-prefixes = u"\n    ".join("%s: %s" % (k.lower(), v) for k, v in namespaces.items()
+prefixes = u"\n    ".join("%s: %s" % (k.lower(), v) for k, v in NAMESPACES.items()
         if k not in u'RDF RDFS OWL XSD')
 
 view_context = {var: globals()[var] for var in
     ('prefixes', 'vocab', 'type_curies', 'l10n', 'is_resource', 'is_described')}
 view_context.update(vars(itertools))
 view_context.update(vars(__builtins__))
-view_context.update(namespaces,
-        libris_link=lambda ref: ref.replace(resource_base, "/"),
+view_context.update(NAMESPACES,
+        libris_link=lambda ref: ref.replace(RESOURCE_BASE, "/"),
         kringla_link=lambda ref: ref.replace("kulturarvsdata.se/", "kringla.nu/kringla/objekt?referens="))
 
 
@@ -123,7 +130,7 @@ def index():
 
 @app.route('/auth')
 def auth_index():
-    res = run_query(rq_prefixes + query_templates['index']())
+    res = run_query(query_templates['index']())
     graph = to_graph(res.content)
     ctx = dict(view_context, lang=LANG, graph=graph)
     return render_template("index.html", **ctx)
@@ -138,10 +145,10 @@ def view(rtype, rid):
     path = rtype + '/' + rid
 
     fmt = _conneg_format(suffix)
-    uri = URIRef(resource_base + path)
+    uri = URIRef(RESOURCE_BASE + path)
     qt = query_templates[rtype]
     #if qt:
-    rq = qt(this=uri.n3())
+    rq = qt(this=uri.n3(), services=SERVICES)
     if fmt == 'rq':
         return rq, 200, {'Content-Type': 'text/plain'}
     res = run_query(rq)
@@ -155,17 +162,24 @@ def view(rtype, rid):
         ctx = dict(view_context, path=path, lang=LANG, this=this, curies=graph.qname)
         return render_template(rtype + '.html', **ctx)
     else:
-        headers = {'Content-Type': mimetypes.get(fmt) or 'text/plain'}
+        headers = {'Content-Type': MIMETYPES.get(fmt) or 'text/plain'}
         fmt = {'rdf': 'xml', 'ttl': 'turtle'}.get(fmt) or fmt
         return graph.serialize(format=fmt), 200, headers
 
 
 if __name__ == '__main__':
+
     from optparse import OptionParser
     oparser = OptionParser()
     oparser.add_option('-d', '--debug', action='store_true', default=False)
+    oparser.add_option('-s', '--use-services')
     opts, args = oparser.parse_args()
 
     app.debug = opts.debug
-    app.run(host='0.0.0.0')
 
+    if opts.use_services:
+        use_services = opts.use_services.split(',')
+        SERVICES = {k: v for (k, v) in SERVICES.items() if k in use_services}
+        print "Using services:", SERVICES
+
+    app.run(host='0.0.0.0')

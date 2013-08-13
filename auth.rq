@@ -1,12 +1,12 @@
 construct {
 
-    $this ?p ?o .
+    {{this}} ?p ?o .
 
     ?item a ?item_type;
       dces:title ?item_title;
-      dces:creator $this .
+      dces:creator {{this}} .
 
-    $this
+    {{this}}
       dbpowl:abstract ?abstract;
       dbpowl:thumbnail ?thumbnail;
       dbpowl:influencedBy ?influence .
@@ -15,7 +15,8 @@ construct {
       foaf:name ?influence_name;
       dbpowl:thumbnail ?influence_thumbnail .
 
-    $this owl:sameAs?ksam_this .
+    #{% if services.raa %}
+    {{this}} owl:sameAs?ksam_this .
     ?ksam_this ksamsok:itemType <http://kulturarvsdata.se/resurser/EntityType#person> ;
       ksamsok:itemLabel ?ksam_name .
 
@@ -26,29 +27,36 @@ construct {
     ?ksam_thing ksamsok:itemType ?ksam_thing_type;
       ksamsok:url ?ksam_thing_url;
       ksamsok:context ?ksam_hubobj .
+    #{% endif %}
+
+    #{% if services.ra %}
+    {{this}} owl:sameAs ?nad_this .
+    ?nad_this ?nad_p ?nad_o .
+    #{% endif %}
 
 } where {
 
     # LIBRIS (default) endpoint
     {
 
-      $this ?p ?o .
+      {{this}} ?p ?o .
 
     } union {
 
       select ?item ?item_type ?item_title {
         ?item a ?item_type;
           dces:title ?item_title;
-          dces:creator $this .
+          dces:creator {{this}} .
         filter(langMatches(lang(?item_title), 'sv'))
       } limit 50
 
+    #{% if services.dbp %}
     # DBPedia endpoint
     } union {
 
-      $this owl:sameAs ?canonical .
+      {{this}} owl:sameAs ?canonical .
 
-      service <http://dbpedia.org/sparql> {
+      service <{{ services.dbp }}> {
         ?canonical dbpowl:abstract ?abstract .
         #FILTER(langMatches(lang(?abstract), "sv"))
         FILTER(langMatches(lang(?abstract), "en"))
@@ -67,14 +75,16 @@ construct {
         FILTER(BOUND(?bound_canonical_influence))
         ?influence owl:sameAs ?canonical_influence .
       }
+    #{% endif %}
 
+    #{% if services.raa %}
     ## RAA endpoint
     } union {
 
-      service <http://193.10.40.180:8080/ksamsok/query> {
+      service <{{ services.raa }}> {
 
         ?ksam_this ksamsok:itemType <http://kulturarvsdata.se/resurser/EntityType#person> ;
-          owl:sameAs $this;
+          owl:sameAs {{this}};
           ksamsok:itemLabel ?ksam_name .
 
         ?ksam_hubobj
@@ -93,6 +103,18 @@ construct {
 
         #?ksam_this ksamsok:fullName ?fullName .
       }
+    #{% endif %}
+
+    #{% if services.ra %}
+    # RA endpoint
+    } union {
+
+      service <{{ services.ra }}> {
+        ?nad_this owl:sameAs ?canonical .
+        #?nad_this foaf:name ?fullName .
+        ?nad_this ?nad_p ?nad_o .
+      }
+    #{% endif %}
 
     }
 
