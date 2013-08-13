@@ -1,3 +1,5 @@
+{{ prefixes }}
+
 construct {
 
     {{this}} ?p ?o .

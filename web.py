@@ -4,7 +4,7 @@ from rdflib import Graph, URIRef, Namespace, RDF, RDFS, OWL, XSD
 from rdflib.resource import Resource
 from rdflib.namespace import NamespaceManager, ClosedNamespace
 import requests
-from flask import Flask, request, render_template, render_template_string, redirect
+from flask import Flask, request, render_template, redirect
 
 
 SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
@@ -27,7 +27,7 @@ ns_mgr = NamespaceManager(Graph())
 for k, v in NAMESPACES.items():
     ns_mgr.bind(k.lower(), v)
 
-rq_prefixes = u"\n".join("prefix %s: <%s>" % (k.lower(), v)
+RQ_PREFIXES = u"\n".join("prefix %s: <%s>" % (k.lower(), v)
         for k, v in NAMESPACES.items())
 
 LANG = 'sv'
@@ -59,15 +59,6 @@ SERVICES = {
     "ra": "http://192.121.221.30/sparql/ra"
 }
 ENDPOINT = u"http://libris.kb.se/sparql"
-
-query_templates = {}
-def load_query_templates():
-    for name in ['auth', 'index']:
-        with open(os.path.join(os.path.dirname(__file__), name + '.rq')) as f:
-            text = rq_prefixes + "\n"*2 + f.read()
-            query_templates[name] = (lambda text=text, **kws:
-                    render_template_string(text, **kws))
-load_query_templates()
 
 def to_graph(data):
     graph = Graph()
@@ -117,11 +108,6 @@ view_context.update(NAMESPACES,
 
 app = Flask(__name__)
 
-@app.before_request
-def reload_templates():
-    if app.debug:
-        load_query_templates()
-
 
 @app.route('/')
 def index():
@@ -130,7 +116,7 @@ def index():
 
 @app.route('/auth')
 def auth_index():
-    res = run_query(query_templates['index']())
+    res = run_query(render_template('queries/index.rq', prefixes=RQ_PREFIXES))
     graph = to_graph(res.content)
     ctx = dict(view_context, lang=LANG, graph=graph)
     return render_template("index.html", **ctx)
@@ -146,9 +132,9 @@ def view(rtype, rid):
 
     fmt = _conneg_format(suffix)
     uri = URIRef(RESOURCE_BASE + path)
-    qt = query_templates[rtype]
-    #if qt:
-    rq = qt(this=uri.n3(), services=SERVICES)
+    #if template:
+    rq = render_template("queries/%s.rq" % rtype,
+            prefixes=RQ_PREFIXES, this=uri.n3(), services=SERVICES)
     if fmt == 'rq':
         return rq, 200, {'Content-Type': 'text/plain'}
     res = run_query(rq)

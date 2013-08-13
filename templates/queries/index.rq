@@ -1,3 +1,5 @@
+{{ prefixes }}
+
 construct {
 
     ?auth a ?type;
