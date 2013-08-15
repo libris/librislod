@@ -158,6 +158,7 @@ if __name__ == '__main__':
     from optparse import OptionParser
     oparser = OptionParser()
     oparser.add_option('-d', '--debug', action='store_true', default=False)
+    oparser.add_option('-p', '--port', type=int, default=5000)
     oparser.add_option('-s', '--use-services')
     opts, args = oparser.parse_args()
 
@@ -168,4 +169,4 @@ if __name__ == '__main__':
         SERVICES = {k: v for (k, v) in SERVICES.items() if k in use_services}
         print "Using services:", SERVICES
 
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', port=opts.port)
