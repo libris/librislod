@@ -1,0 +1,14 @@
+{
+    "sv": {
+        "influencedBy": "Influerad av",
+        "works": "Verk",
+        "seeAlso": "Se även",
+        "formats": "Format"
+    },
+    "en": {
+        "influencedBy": "Influenced By",
+        "works": "Works",
+        "seeAlso": "See Also",
+        "formats": "Formats"
+    }
+}

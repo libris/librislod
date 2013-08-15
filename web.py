@@ -1,5 +1,6 @@
 import os
 import itertools
+import json
 from rdflib import Graph, URIRef, Namespace, RDF, RDFS, OWL, XSD
 from rdflib.resource import Resource
 from rdflib.namespace import NamespaceManager, ClosedNamespace
@@ -31,6 +32,10 @@ RQ_PREFIXES = u"\n".join("prefix %s: <%s>" % (k.lower(), v)
         for k, v in NAMESPACES.items())
 
 LANG = 'sv'
+
+with open(os.path.join(os.path.dirname(__file__), 'labels.json')) as f:
+    LABELS = json.load(f)
+
 
 def type_curies(r):
     return " ".join(t.qname() for t in r.objects(RDF.type))
@@ -145,7 +150,8 @@ def view(rtype, rid):
     this = graph.resource(uri)
 
     if fmt in ('html', 'xhtml'):
-        ctx = dict(view_context, path=path, lang=LANG, this=this, curies=graph.qname)
+        ctx = dict(view_context, labels=LABELS[LANG], lang=LANG,
+                path=path, this=this, curies=graph.qname)
         return render_template(rtype + '.html', **ctx)
     else:
         headers = {'Content-Type': MIMETYPES.get(fmt) or 'text/plain'}
@@ -159,10 +165,14 @@ if __name__ == '__main__':
     oparser = OptionParser()
     oparser.add_option('-d', '--debug', action='store_true', default=False)
     oparser.add_option('-p', '--port', type=int, default=5000)
+    oparser.add_option('-l', '--lang')
     oparser.add_option('-s', '--use-services')
     opts, args = oparser.parse_args()
 
     app.debug = opts.debug
+
+    if opts.lang:
+        LANG = opts.lang
 
     if opts.use_services:
         use_services = opts.use_services.split(',')

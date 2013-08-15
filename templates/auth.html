@@ -22,7 +22,7 @@
         {{ this.value(DBPOWL['abstract']) }}
       </p>
       <section>
-        <h2>Verk</h2>
+        <h2>{{ labels.works }}</h2>
         {% for work in this.subjects(DCES.creator) | sort %}
           <div>
             <a property="{{curies(DCES.creator)}}" href="{{work.identifier}}"
@@ -32,7 +32,7 @@
         <p>
       </section>
       <section>
-        <h2>Influerad av</h2>
+        <h2>{{ labels.influencedBy }}</h2>
         {% for influence in this.objects(DBPOWL.influencedBy) | sort %}
           <div>
             {% if influence.value(DBPOWL.thumbnail) %}
@@ -48,7 +48,7 @@
       </section>
     </div>
     <aside class="span5">
-      <h2><i>Se även</i></h2>
+      <h2><i>{{ labels.seeAlso }}</i></h2>
       {# for rel in [RDFS.seeAlso, OWL.sameAs, SKOS.exactMatch] #}
       {% for rel in [OWL.sameAs] %}
         {% for same in this.objects(rel) | sort %}
@@ -116,7 +116,7 @@
     </aside>
   </article>
   <footer>
-    Format:
+    {{ labels.formats }}:
     <a href="/{{path}}.ttl"><i class="icon-file"></i> Turtle</a>,
     <a href="/{{path}}.xml"><i class="icon-file"></i> RDF/XML</a>
   </footer>
