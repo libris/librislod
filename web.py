@@ -121,9 +121,14 @@ def index():
 
 @app.route('/auth')
 def auth_index():
-    res = run_query(render_template('queries/index.rq', prefixes=RQ_PREFIXES))
-    graph = to_graph(res.content)
-    ctx = dict(view_context, lang=LANG, graph=graph)
+    cachedir = app.config['use_cache']
+    if cachedir:
+        content = get_cached("%s/index.ttl" % cachedir)
+    else:
+        res = run_query(render_template('queries/index.rq', prefixes=RQ_PREFIXES))
+        content = res.content
+    graph = to_graph(content)
+    ctx = dict(view_context, labels=LABELS[LANG], lang=LANG, graph=graph)
     return render_template("index.html", **ctx)
 
 
@@ -142,11 +147,16 @@ def view(rtype, rid):
             prefixes=RQ_PREFIXES, this=uri.n3(), services=SERVICES)
     if fmt == 'rq':
         return rq, 200, {'Content-Type': 'text/plain'}
-    res = run_query(rq)
+    cachedir = app.config['use_cache']
+    if cachedir:
+        content = get_cached("%s/%s/%s.ttl" % (cachedir, rtype, rid))
+    else:
+        res = run_query(rq)
+        content = res.content
     #else:
     #    url = data_base + path + '.n3'
     #    res = requests.get(url)
-    graph = to_graph(res.content)
+    graph = to_graph(content)
     this = graph.resource(uri)
 
     if fmt in ('html', 'xhtml'):
@@ -159,6 +169,38 @@ def view(rtype, rid):
         return graph.serialize(format=fmt), 200, headers
 
 
+def seed_cache(cachedir):
+    fpath = "%s/index.ttl" % cachedir
+    if os.path.exists(fpath):
+        with open(fpath) as f:
+            graph = to_graph(f.read())
+    else:
+        print "Querying index.."
+        content = run_query(render_template('queries/index.rq', prefixes=RQ_PREFIXES)).content
+        with open(fpath, 'w') as f:
+            f.write(content)
+        graph = to_graph(content)
+    for person in map(graph.resource, graph.subjects(RDF.type, FOAF.Person)):
+        lpath = person.identifier.replace(RESOURCE_BASE, "")
+        if os.path.exists(lpath):
+            print "Has", lpath
+            continue
+        print "Querying", lpath, ".."
+        rq = render_template("queries/auth.rq",
+                prefixes=RQ_PREFIXES, this=person.identifier.n3(), services=SERVICES)
+        content = run_query(rq).content
+        if "ERROR" in content:
+            print content
+            continue
+        with open("%s/%s.ttl" % (cachedir, lpath), 'w') as f:
+            f.write(content)
+        print "OK"
+
+def get_cached(cachedpath):
+    with open(cachedpath) as f:
+        return f.read()
+
+
 if __name__ == '__main__':
 
     from optparse import OptionParser
@@ -167,6 +209,8 @@ if __name__ == '__main__':
     oparser.add_option('-p', '--port', type=int, default=5000)
     oparser.add_option('-l', '--lang')
     oparser.add_option('-s', '--use-services')
+    oparser.add_option('-C', '--seed-cache')
+    oparser.add_option('-c', '--use-cache')
     opts, args = oparser.parse_args()
 
     app.debug = opts.debug
@@ -179,4 +223,9 @@ if __name__ == '__main__':
         SERVICES = {k: v for (k, v) in SERVICES.items() if k in use_services}
         print "Using services:", SERVICES
 
-    app.run(host='0.0.0.0', port=opts.port)
+    if opts.seed_cache:
+        with app.test_request_context('/'):
+            seed_cache(opts.seed_cache)
+    else:
+        app.config['use_cache'] = opts.use_cache
+        app.run(host='0.0.0.0', port=opts.port)
