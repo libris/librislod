@@ -23,11 +23,11 @@
       <p property="description">{{ this.value(DBPOWL['abstract']) }}</p>
       <section>
         <h2>{{ labels.works }}</h2>
-        {% for work in this.subjects(DCES.creator) | sort %}
+        {% for work in this.subjects(DC11.creator) | sort %}
           <div>
             <a rev="creator" href="{{work}}">
               <i class=" icon-book"></i>
-              <span property="name">{{work.value(DCES.title)}}</span></a>
+              <span property="name">{{work.value(DC11.title)}}</span></a>
           </div>
         {% endfor %}
         <p>

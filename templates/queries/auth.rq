@@ -5,8 +5,8 @@ construct {
     {{this}} ?p ?o .
 
     ?item a ?item_type;
-      dces:title ?item_title;
-      dces:creator {{this}} .
+      dc11:title ?item_title;
+      dc11:creator {{this}} .
 
     {{this}}
       dbpowl:abstract ?abstract;
@@ -47,8 +47,8 @@ construct {
 
       select ?item ?item_type ?item_title {
         ?item a ?item_type;
-          dces:title ?item_title;
-          dces:creator {{this}} .
+          dc11:title ?item_title;
+          dc11:creator {{this}} .
         filter(langMatches(lang(?item_title), 'sv'))
       } limit 50
 

@@ -10,8 +10,8 @@ from flask import Flask, request, render_template, redirect
 
 
 SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
-DCES = Namespace("http://purl.org/dc/elements/1.1/")
-DCT = Namespace("http://purl.org/dc/terms/")
+DC11 = Namespace("http://purl.org/dc/elements/1.1/")
+DC = Namespace("http://purl.org/dc/terms/")
 FOAF = Namespace("http://xmlns.com/foaf/0.1/")
 BIBO = Namespace("http://purl.org/ontology/bibo/")
 RDES = Namespace("http://RDVocab.info/Elements/")
@@ -100,8 +100,9 @@ def _conneg_format(suffix=None):
 
 
 vocab = u"http://schema.org/"
-prefixes = u"\n    ".join("%s: %s" % (k.lower(), v) for k, v in NAMESPACES.items()
-        if k not in u'RDF RDFS OWL XSD')
+prefixes = u"\n    ".join("%s: %s" % (k.lower(), v)
+        for k, v in sorted(NAMESPACES.items())
+        if k not in u'RDF RDFS OWL XSD SKOS DC DC11 FOAF')
 
 
 def datasource_label(resource):
