@@ -2,31 +2,32 @@
 {% block title %}{{ this.value(LIBRIS.key) }}{% endblock %}
 {% block head_extras %}
 {% endblock head_extras %}
-  <link rel="source" href="{{this.identifier}}"/>
+  <link rel="url" href="{{ this }}"/>
 {% block main %}
-  <article typeof="{{type_curies(this)}}" class="row">
+  <article resource="{{ this }}" typeof="Person {{ type_curies(this) }}" class="row">
     <div class="span7">
       <h2 class="db">LIBRIS</h2>
-      <h1 property="{{curies(LIBRIS.key)}}">{{this.value(LIBRIS.key)}}</h1>
+      <h1 property="name">{{this.value(LIBRIS.key)}}</h1>
       {#
-      <p><a property="rdf:type" href="{{this.value(RDF.type).identifier}}">[type]</a><p>
+      <p><a property="additionalType rdf:type" href="{{this.value(RDF.type)}}">[type]</a><p>
       {% for name in this.objects(FOAF.name) | sort %}
-        <div><i>{{name}}</i></div>
+        <div property="alternateName"><i>{{name}}</i></div>
       {% endfor %}
       #}
-      <figure class="pull-right">
-        <img class="img-polaroid" property="{{curies(DBPOWL.thumbnail)}}"
-            src="{{ this.value(DBPOWL.thumbnail).identifier }}" />
-      </figure>
-      <p property="{{ curies(DBPOWL['abstract']) }}">
-        {{ this.value(DBPOWL['abstract']) }}
-      </p>
+      {% if this.value(DBPOWL.thumbnail) %}
+        <figure class="pull-right">
+          <img class="img-polaroid" property="thumbnailUrl"
+              src="{{ this.value(DBPOWL.thumbnail) }}" />
+        </figure>
+      {% endif %}
+      <p property="description">{{ this.value(DBPOWL['abstract']) }}</p>
       <section>
         <h2>{{ labels.works }}</h2>
         {% for work in this.subjects(DCES.creator) | sort %}
           <div>
-            <a property="{{curies(DCES.creator)}}" href="{{work.identifier}}"
-              ><i class=" icon-book"></i> {{work.value(DCES.title)}}</a>
+            <a rev="creator" href="{{work}}">
+              <i class=" icon-book"></i>
+              <span property="name">{{work.value(DCES.title)}}</span></a>
           </div>
         {% endfor %}
         <p>
@@ -37,11 +38,10 @@
           <div>
             {% if influence.value(DBPOWL.thumbnail) %}
               <img class="img-polaroid" width="32"
-                  src="{{ influence.value(DBPOWL.thumbnail).identifier }}" />
+                  src="{{ influence.value(DBPOWL.thumbnail) }}" />
             {% endif %}
-            <a property="{{curies(DBPOWL.influencedBy)}}"
-              href="{{libris_link(influence.identifier)}}"
-              >{{influence.value(FOAF.name)}}</a>
+            <a property="follows" href="{{app_link(influence.identifier)}}"
+              ><span property="name">{{influence.value(FOAF.name)}}</span></a>
           </div>
         {% endfor %}
         <p>
@@ -53,24 +53,9 @@
       {% for rel in [OWL.sameAs] %}
         {% for same in this.objects(rel) | sort %}
           <article class="well">
-            <h2 class="db">{% if "dbpedia.org" in same.identifier -%}
-                DBPedia
-              {%- elif "viaf.org" in same.identifier -%}
-                VIAF
-              {%- elif "id.riksarkivet.se" in same.identifier -%}
-                NAD
-              {%- elif "kulturarvsdata.se" in same.identifier -%}
-                K-samsök
-              {%- else -%}
-                {{same.identifier}}
-              {%- endif %}
-              {%- if "kulturarvsdata.se" in same.identifier -%}
-                <a property="{{curies(rel)}}" href="{{kringla_link(same.identifier)}}"
-                  class="pull-right"><i class="icon-arrow-right"></i></a>
-              {%- else -%}
-                <a property="{{curies(rel)}}" href="{{same.identifier}}"
-                  class="pull-right"><i class="icon-arrow-right"></i></a>
-              {%- endif %}
+            <h2 class="db">{{ datasource_label(same) }}
+              <a property="sameAs" href="{{ext_link(same.identifier)}}"
+                class="pull-right"><i class="icon-arrow-right"></i></a>
             </h2>
             {% if is_described(same) %}
 
@@ -80,13 +65,13 @@
                     <th>{{ prop.qname().split(':')[-1] }}</th>
                     {% if is_resource(obj) -%}
                       <td>
-                        <a property="{{curies(prop.identifier)}}"
-                          href="{{ obj.identifier }}">
+                        <a property="{{ prop.qname() }}"
+                          href="{{ obj }}">
                           ...{{ obj.identifier[-20:] }}
                         </a>
                       </td>
                     {%- else -%}
-                      <td property="{{curies(prop.identifier)}}">
+                      <td property="{{ prop.qname() }}">
                         {% if obj.startswith('http') %}
                           <a href="{{ obj }}">...{{ obj[-20:] }}</a>
                         {% else %}
@@ -98,16 +83,14 @@
                 {% endfor %}
               </table>
 
-              {%- if "kulturarvsdata.se" in same.identifier -%}
-                {% for hub in same.subjects(KSAMSOK.architect) %}
-                  <div>
-                    <b>{{ same.value(KSAMSOK.itemType).qname() }}</b>
-                    {% for name in hub.objects(KSAMSOK.name) %}
-                      <span class="label label-info">{{ name }}</span>
-                    {% endfor %}
-                  </div>
-                {% endfor %}
-              {%- endif %}
+              {% for hub in same.subjects(KSAMSOK.architect) %}
+                <div>
+                  <b>{{ same.value(KSAMSOK.itemType).qname() }}</b>
+                  {% for name in hub.objects(KSAMSOK.name) %}
+                    <span class="label label-info">{{ name }}</span>
+                  {% endfor %}
+                </div>
+              {% endfor %}
 
             {% endif %}
           </article>

@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 import os
 import itertools
 import json
@@ -102,16 +103,43 @@ vocab = u"http://schema.org/"
 prefixes = u"\n    ".join("%s: %s" % (k.lower(), v) for k, v in NAMESPACES.items()
         if k not in u'RDF RDFS OWL XSD')
 
-view_context = {var: globals()[var] for var in
-    ('prefixes', 'vocab', 'type_curies', 'l10n', 'is_resource', 'is_described')}
-view_context.update(vars(itertools))
-view_context.update(vars(__builtins__))
-view_context.update(NAMESPACES,
-        libris_link=lambda ref: ref.replace(RESOURCE_BASE, "/"),
-        kringla_link=lambda ref: ref.replace("kulturarvsdata.se/", "kringla.nu/kringla/objekt?referens="))
+
+def datasource_label(resource):
+    rid = resource.identifier
+    if "dbpedia.org" in rid:
+        return u"DBPedia"
+    elif "viaf.org" in rid:
+        return u"VIAF"
+    elif "id.riksarkivet.se" in rid:
+        return u"NAD"
+    elif "kulturarvsdata.se" in rid:
+        return u"K-samsök"
+    else:
+        return rid
+
+def app_link(ref):
+    return ref.replace(RESOURCE_BASE, "/")
+
+def ext_link(ref):
+    if "kulturarvsdata.se" in ref:
+        return ref.replace("kulturarvsdata.se/", "kringla.nu/kringla/objekt?referens=")
+    else:
+        return ref
 
 
 app = Flask(__name__)
+
+
+@app.context_processor
+def inject_view_context():
+    ctx = {var: globals()[var] for var in
+        ('prefixes', 'vocab', 'type_curies',
+                'l10n', 'is_resource', 'is_described',
+                'datasource_label', 'app_link', 'ext_link')}
+    ctx.update(vars(itertools))
+    ctx.update(vars(__builtins__))
+    ctx.update(NAMESPACES)
+    return ctx
 
 
 @app.route('/')
@@ -150,9 +178,9 @@ def view(rtype, rid):
     this = graph.resource(uri)
 
     if fmt in ('html', 'xhtml'):
-        ctx = dict(view_context, labels=LABELS[LANG], lang=LANG,
+        return render_template(rtype + '.html',
+                labels=LABELS[LANG], lang=LANG,
                 path=path, this=this, curies=graph.qname)
-        return render_template(rtype + '.html', **ctx)
     else:
         headers = {'Content-Type': MIMETYPES.get(fmt) or 'text/plain'}
         fmt = {'rdf': 'xml', 'ttl': 'turtle'}.get(fmt) or fmt
