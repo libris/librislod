@@ -36,12 +36,14 @@
         <h2>{{ labels.influencedBy }}</h2>
         {% for influence in this.objects(DBPOWL.influencedBy) | sort %}
           <div>
-            {% if influence.value(DBPOWL.thumbnail) %}
-              <img class="img-polaroid" width="32"
-                  src="{{ influence.value(DBPOWL.thumbnail) }}" />
-            {% endif %}
             <a property="follows" href="{{app_link(influence.identifier)}}"
-              ><span property="name">{{influence.value(FOAF.name)}}</span></a>
+               typeof="Person">
+              {% if influence.value(DBPOWL.thumbnail) %}
+                <img class="img-polaroid" width="32"
+                     property="thumbnailUrl"
+                     src="{{ influence.value(DBPOWL.thumbnail) }}" />
+              {% endif %}
+              <span property="name">{{influence.value(FOAF.name)}}</span></a>
           </div>
         {% endfor %}
         <p>
