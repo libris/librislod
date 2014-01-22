@@ -140,6 +140,7 @@ def inject_view_context():
     ctx.update(vars(itertools))
     ctx.update(vars(__builtins__))
     ctx.update(NAMESPACES)
+    ctx.update(lang=LANG, labels=LABELS[LANG])
     return ctx
 
 
@@ -152,7 +153,7 @@ def index():
 def auth_index():
     res = run_query(render_template('queries/index.rq', prefixes=RQ_PREFIXES))
     graph = to_graph(res.content)
-    ctx = dict(view_context, lang=LANG, graph=graph)
+    ctx = dict(graph=graph)
     return render_template("index.html", **ctx)
 
 
@@ -180,7 +181,6 @@ def view(rtype, rid):
 
     if fmt in ('html', 'xhtml'):
         return render_template(rtype + '.html',
-                labels=LABELS[LANG], lang=LANG,
                 path=path, this=this, curies=graph.qname)
     else:
         headers = {'Content-Type': MIMETYPES.get(fmt) or 'text/plain'}
