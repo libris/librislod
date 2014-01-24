@@ -32,8 +32,6 @@ for k, v in NAMESPACES.items():
 RQ_PREFIXES = u"\n".join("prefix %s: <%s>" % (k.lower(), v)
         for k, v in NAMESPACES.items())
 
-LANG = 'sv'
-
 with open(os.path.join(os.path.dirname(__file__), 'labels.json')) as f:
     LABELS = json.load(f)
 
@@ -41,7 +39,8 @@ with open(os.path.join(os.path.dirname(__file__), 'labels.json')) as f:
 def type_curies(r):
     return " ".join(t.qname() for t in r.objects(RDF.type))
 
-def l10n(literals, lang=LANG):
+def l10n(literals):
+    lang = app.config['LANG']
     for l in literals:
         if l.language == lang:
             break
@@ -54,26 +53,14 @@ def is_described(resource):
     return (resource.identifier, None, None) in resource.graph
 
 
-# {bib | auth | hld?} / {id}
-RESOURCE_BASE = "http://libris.kb.se/resource/"
-#data_base = "http://data.libris.kb.se/open/"
-
-SERVICES = {
-    "dbp": "http://dbpedia.org/sparql",
-    #"raa": "http://193.10.40.180:8080/ksamsok/query",
-    "raa": "http://192.121.221.30/sparql/raa",
-    "ra": "http://192.121.221.30/sparql/ra"
-}
-ENDPOINT = u"http://libris.kb.se/sparql"
-
 def to_graph(data):
     graph = Graph()
     graph.parse(data=data, format='turtle')
     graph.namespace_manager = ns_mgr
     return graph
 
-def run_query(rq, accept='text/turtle'):
-    return requests.post(ENDPOINT, data={'query': rq},
+def run_query(endpoint, rq, accept='text/turtle'):
+    return requests.post(endpoint, data={'query': rq},
             headers={'Accept': accept})
 
 
@@ -119,7 +106,7 @@ def datasource_label(resource):
         return rid
 
 def app_link(ref):
-    return ref.replace(RESOURCE_BASE, "/")
+    return ref.replace(app.config['RESOURCE_BASE'], "/")
 
 def ext_link(ref):
     if "kulturarvsdata.se" in ref:
@@ -130,9 +117,14 @@ def ext_link(ref):
 
 app = Flask(__name__)
 
+app.config.from_pyfile('settings.cfg')
+app.config.from_pyfile('localsettings.cfg', silent=True)
+app.config.from_envvar('LODVIEWER_SETTINGS', silent=True)
+
 
 @app.context_processor
 def inject_view_context():
+    lang = app.config['LANG']
     ctx = {var: globals()[var] for var in
         ('prefixes', 'vocab', 'type_curies',
                 'l10n', 'is_resource', 'is_described',
@@ -140,7 +132,7 @@ def inject_view_context():
     ctx.update(vars(itertools))
     ctx.update(vars(__builtins__))
     ctx.update(NAMESPACES)
-    ctx.update(lang=LANG, labels=LABELS[LANG])
+    ctx.update(lang=lang, labels=LABELS[lang])
     return ctx
 
 
@@ -151,7 +143,8 @@ def index():
 
 @app.route('/auth')
 def auth_index():
-    res = run_query(render_template('queries/index.rq', prefixes=RQ_PREFIXES))
+    res = run_query(app.config['ENDPOINT'],
+            render_template('queries/index.rq', prefixes=RQ_PREFIXES))
     graph = to_graph(res.content)
     ctx = dict(graph=graph)
     return render_template("index.html", **ctx)
@@ -165,14 +158,16 @@ def view(rtype, rid):
         suffix = None
     path = rtype + '/' + rid
 
-    fmt = _conneg_format(suffix)
-    uri = URIRef(RESOURCE_BASE + path)
+    uri = URIRef(app.config['RESOURCE_BASE'] + path)
     #if template:
+    services = app.config['SERVICES']
     rq = render_template("queries/%s.rq" % rtype,
-            prefixes=RQ_PREFIXES, this=uri.n3(), services=SERVICES)
+            prefixes=RQ_PREFIXES, this=uri.n3(), services=services)
+
+    fmt = _conneg_format(suffix)
     if fmt == 'rq':
         return rq, 200, {'Content-Type': 'text/plain'}
-    res = run_query(rq)
+    res = run_query(app.config['ENDPOINT'], rq)
     #else:
     #    url = data_base + path + '.n3'
     #    res = requests.get(url)
@@ -189,23 +184,11 @@ def view(rtype, rid):
 
 
 if __name__ == '__main__':
-
     from optparse import OptionParser
     oparser = OptionParser()
     oparser.add_option('-d', '--debug', action='store_true', default=False)
     oparser.add_option('-p', '--port', type=int, default=5000)
-    oparser.add_option('-l', '--lang')
-    oparser.add_option('-s', '--use-services')
     opts, args = oparser.parse_args()
 
     app.debug = opts.debug
-
-    if opts.lang:
-        LANG = opts.lang
-
-    if opts.use_services:
-        use_services = opts.use_services.split(',')
-        SERVICES = {k: v for (k, v) in SERVICES.items() if k in use_services}
-        print "Using services:", SERVICES
-
     app.run(host='0.0.0.0', port=opts.port)
