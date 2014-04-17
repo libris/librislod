@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ this.value(LIBRIS.key) }}{% endblock %}
+{% block title %}{{ this.value(BF.authorizedAccessPoint) }}{% endblock %}
 {% block head_extras %}
 {% endblock head_extras %}
   <link rel="url" href="{{ this }}"/>
@@ -7,23 +7,39 @@
   <article resource="{{ this }}" typeof="Person {{ type_curies(this) }}" class="row">
     <div class="span7">
       <h2 class="db">LIBRIS</h2>
-      <h1 property="name">{{this.value(LIBRIS.key)}}</h1>
+      <h1 property="name">{{this.value(BF.authorizedAccessPoint)}}</h1>
       {#
       <p><a property="additionalType rdf:type" href="{{this.value(RDF.type)}}">[type]</a><p>
       {% for name in this.objects(FOAF.name) | sort %}
         <div property="alternateName"><i>{{name}}</i></div>
       {% endfor %}
       #}
-      {% if this.value(DBPOWL.thumbnail) %}
-        <figure class="pull-right">
-          <img class="img-polaroid" property="thumbnailUrl"
-              src="{{ this.value(DBPOWL.thumbnail) }}" />
-        </figure>
+      {% if dbpr %}
+        {% if dbpr.value(DBPOWL.thumbnail) %}
+            <figure class="pull-right">
+            <img class="img-polaroid" property="thumbnailUrl"
+                src="{{ dbpr.value(DBPOWL.thumbnail) }}" />
+            </figure>
+        {% endif %}
+        <p property="description">{{ dbpr.value(DBPOWL.abstract) }}</p>
+        <p>
+            <em>[<a href="{{ dbpr.value(FOAF.isPrimaryTopicOf) }}">wikipedia</a>]</em>
+        </p>
       {% endif %}
-      <p property="description">{{ this.value(DBPOWL['abstract']) }}</p>
+      <section>
+        <h2>{{ labels.classification }}</h2>
+        {% for subj in this.objects(DC.subject) | sort %}
+          <div>
+            <a property="dc:subject" href="{{subj}}" typeof="{{ type_curies(subj) }}">
+              <span property="skos:notation">{{subj.value(DC.hasVersion / SKOS.notation)}}</span></a>
+              <span property="skos:prefLabel">{{subj.value(DC.hasVersion / SKOS.prefLabel)}}</span></a>
+          </div>
+        {% endfor %}
+        <p>
+      </section>
       <section>
         <h2>{{ labels.works }}</h2>
-        {% for work in this.subjects(DC11.creator) | sort %}
+        {% for work in this.subjects(DC.creator) | sort %}
           <div>
             <a rev="creator" href="{{work}}">
               <i class=" icon-book"></i>
@@ -53,7 +69,7 @@
       <h2><i>{{ labels.seeAlso }}</i></h2>
       {# for rel in [RDFS.seeAlso, OWL.sameAs, SKOS.exactMatch] #}
       {% for rel in [OWL.sameAs] %}
-        {% for same in this.objects(rel) | sort %}
+        {% for same in filter(is_iri, this.objects(rel)) | sort %}
           <article class="well">
             <h2 class="db">{{ datasource_label(same) }}
               <a property="sameAs" href="{{ext_link(same.identifier)}}"

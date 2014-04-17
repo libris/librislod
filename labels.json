@@ -1,12 +1,16 @@
 {
     "sv": {
         "influencedBy": "Influerad av",
+        "classification": "Klassificering",
+        "subjects": "Ämnesord",
         "works": "Verk",
         "seeAlso": "Se även",
         "formats": "Format"
     },
     "en": {
         "influencedBy": "Influenced By",
+        "classification": "Classification",
+        "subjects": "Subjects",
         "works": "Works",
         "seeAlso": "See Also",
         "formats": "Formats"

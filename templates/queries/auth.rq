@@ -2,23 +2,39 @@
 
 construct {
 
-    {{this}} ?p ?o .
+    {{this}} ?p ?o ; owl:sameAs ?same; pna:hasPersona ?persona .
+
+    ?same ?sameP ?sameO .
+    ?persona ?pnaP ?pnaO .
 
     ?item a ?item_type;
-      dc11:title ?item_title;
-      dc11:creator {{this}} .
+      dc:title ?item_title;
+      dc:creator {{this}} .
 
-    {{this}}
+    {{this}} owl:sameAs ?canonical .
+    ?canonical foaf:isPrimaryTopicOf ?wp_page .
+
+    ?canonical a ?dbp_type;
       dbpowl:abstract ?abstract;
       dbpowl:thumbnail ?thumbnail;
-      dbpowl:influencedBy ?influence .
+      dbpowl:influencedBy ?canonical_influence .
 
-    ?influence
+    ?canonical_influence
+      owl:sameAs ?influence;
       foaf:name ?influence_name;
       dbpowl:thumbnail ?influence_thumbnail .
 
+    #{% if services.ddc %}
+    {{this}} dc:subject ?ddcode .
+    ?ddcode dc:hasVersion ?ver .
+    ?ver
+      skos:notation ?not; skos:prefLabel ?pl; dc:modified ?mod;
+      skos:broader ?broader .
+    ?broader skos:notation ?b_not; skos:prefLabel ?b_pl; dc:modified ?b_mod .
+    #{% endif %}
+
     #{% if services.raa %}
-    {{this}} owl:sameAs?ksam_this .
+    {{this}} owl:sameAs ?ksam_this .
     ?ksam_this ksamsok:itemType <http://kulturarvsdata.se/resurser/EntityType#person> ;
       ksamsok:itemLabel ?ksam_name .
 
@@ -45,29 +61,47 @@ construct {
 
     } union {
 
+        {{this}} owl:sameAs ?same .
+        filter(isBLANK(?same))
+        ?same ?sameP ?sameO .
+
+    } union {
+
+        {{this}} pna:hasPersona ?persona .
+        ?persona ?pnaP ?pnaO .
+
+    } union {
+
       select ?item ?item_type ?item_title {
         ?item a ?item_type;
-          dc11:title ?item_title;
-          dc11:creator {{this}} .
-        filter(langMatches(lang(?item_title), 'sv'))
+             bf:title [ bf:titleValue ?item_title ] ;
+             bf:instanceOf [ prov:wasAttributedTo {{this}} ] .
+        #filter(lang(?item_title) = '' || langMatches(lang(?item_title), 'sv'))
       } limit 50
 
     #{% if services.dbp %}
     # DBPedia endpoint
     } union {
 
-      {{this}} owl:sameAs ?canonical .
+      {{this}}
+        owl:sameAs ?canonical .
 
-      service <{{ services.dbp }}> {
-        ?canonical dbpowl:abstract ?abstract .
-        #FILTER(langMatches(lang(?abstract), "sv"))
-        FILTER(langMatches(lang(?abstract), "en"))
-        optional {
+      FILTER(isIRI(?canonical) && STRSTARTS(STR(?canonical), "http://dbpedia.org/resource/"))
+
+      SERVICE <{{ services.dbp }}> {
+        {
+          ?canonical a ?dbp_type .
+        } union {
+          ?canonical dbpowl:abstract ?abstract .
+          #FILTER(langMatches(lang(?abstract), "sv"))
+          FILTER(langMatches(lang(?abstract), "en"))
           ?canonical dbpowl:thumbnail ?thumbnail .
-        }
-        optional {
+          ?canonical foaf:isPrimaryTopicOf ?wp_page .
+        } union {
           ?canonical dbpowl:influencedBy ?canonical_influence .
-          ?canonical_influence foaf:name ?influence_name .
+          ?canonical_influence
+            foaf:isPrimaryTopicOf ?influence_page;
+            foaf:name ?influence_name .
           optional { ?canonical_influence dbpowl:thumbnail ?influence_thumbnail }
         }
       }
@@ -79,11 +113,28 @@ construct {
       }
     #{% endif %}
 
+    #{% if services.ddc %}
+    # DDC endpoint
+    } union {
+
+      {{this}} dc:subject ?ddcode .
+      FILTER(isIRI(?ddcode) && STRSTARTS(STR(?ddcode), "http://dewey.info/class/"))
+
+      SERVICE <{{ services.ddc }}> {
+        ?ddcode dc:hasVersion ?ver .
+        ?ver
+          skos:notation ?not; skos:prefLabel ?pl; dc:modified ?mod;
+          skos:broader ?broader .
+        ?broader skos:notation ?b_not; skos:prefLabel ?b_pl; dc:modified ?b_mod .
+      }
+
+    #{% endif %}
+
     #{% if services.raa %}
     ## RAA endpoint
     } union {
 
-      service <{{ services.raa }}> {
+      SERVICE <{{ services.raa }}> {
 
         ?ksam_this ksamsok:itemType <http://kulturarvsdata.se/resurser/EntityType#person> ;
           owl:sameAs {{this}};
@@ -111,7 +162,7 @@ construct {
     # RA endpoint
     } union {
 
-      service <{{ services.ra }}> {
+      SERVICE <{{ services.ra }}> {
         ?nad_this owl:sameAs ?canonical .
         #?nad_this foaf:name ?fullName .
         ?nad_this ?nad_p ?nad_o .

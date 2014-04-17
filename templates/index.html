@@ -6,7 +6,7 @@
       <h1>Index</h1>
       {% for person in map(graph.resource, graph.subjects(RDF.type, FOAF.Person)) | sort %}
         <div>
-          <a href="{{ app_link(person.identifier) }}">{{ person.value(LIBRIS.key) }}</a>
+          <a href="{{ app_link(person.identifier) }}">{{ person.value(BF.authorizedAccessPoint) }}</a>
           ({{ labels.influencedBy | lower }} {{ len(list(person.objects(DBPOWL.influencedBy))) }})
         </div>
       {% endfor %}

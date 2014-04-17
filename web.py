@@ -2,23 +2,31 @@
 import os
 import itertools
 import json
-from rdflib import Graph, URIRef, Namespace, RDF, RDFS, OWL, XSD
+from rdflib import BNode, Graph, URIRef, Namespace, RDF, RDFS, OWL, XSD
 from rdflib.resource import Resource
 from rdflib.namespace import NamespaceManager, ClosedNamespace
 import requests
 from flask import Flask, request, render_template, redirect
 
 
+URIRef.__truediv__ = URIRef.__div__ # fixes future division (enabled in jinja2 templates)
+
+
 SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
-DC11 = Namespace("http://purl.org/dc/elements/1.1/")
+#DC11 = Namespace("http://purl.org/dc/elements/1.1/")
 DC = Namespace("http://purl.org/dc/terms/")
+PROV = Namespace("http://www.w3.org/ns/prov#")
 FOAF = Namespace("http://xmlns.com/foaf/0.1/")
 BIBO = Namespace("http://purl.org/ontology/bibo/")
-RDES = Namespace("http://RDVocab.info/Elements/")
-RDES2 = Namespace("http://RDVocab.info/ElementsGr2/")
+SDO = Namespace("http://schema.org/")
+DDC = Namespace("http://dewey.info/schema-terms/")
+BF = Namespace("http://bibframe.org/vocab/")
+PNA = Namespace("http://www.pipian.com/schemas/foaf/persona#")
+#RDES = Namespace("http://RDVocab.info/Elements/")
+#RDES2 = Namespace("http://RDVocab.info/ElementsGr2/")
 DBPOWL = Namespace("http://dbpedia.org/ontology/")
 DBPROP = Namespace("http://dbpedia.org/property/")
-LIBRIS = Namespace("http://libris.kb.se/vocabulary/experimental#")
+T = Namespace("http://libris.kb.se/def/terms#")
 KSAMSOK = Namespace("http://kulturarvsdata.se/ksamsok#")
 
 
@@ -48,6 +56,12 @@ def l10n(literals):
 
 def is_resource(o):
     return isinstance(o, Resource)
+
+def is_blank(r):
+    return isinstance(r.identifier, BNode)
+
+def is_iri(r):
+    return isinstance(r.identifier, URIRef)
 
 def is_described(resource):
     return (resource.identifier, None, None) in resource.graph
@@ -127,7 +141,7 @@ def inject_view_context():
     lang = app.config['LANG']
     ctx = {var: globals()[var] for var in
         ('prefixes', 'vocab', 'type_curies',
-                'l10n', 'is_resource', 'is_described',
+                'l10n', 'is_resource', 'is_blank', 'is_iri', 'is_described',
                 'datasource_label', 'app_link', 'ext_link')}
     ctx.update(vars(itertools))
     ctx.update(vars(__builtins__))
@@ -175,10 +189,17 @@ def view(rtype, rid):
     this = graph.resource(uri)
 
     if fmt in ('html', 'xhtml'):
+        for o in this.objects(OWL.sameAs):
+            if o.identifier.startswith("http://dbpedia.org/resource/"):
+                dbpr = o
+                break
+        else:
+            dbpr = None
         return render_template(rtype + '.html',
-                path=path, this=this, curies=graph.qname)
+                path=path, this=this, dbpr=dbpr, curies=graph.qname)
     else:
-        headers = {'Content-Type': MIMETYPES.get(fmt) or 'text/plain'}
+        charset = ';charset=utf-8'
+        headers = {'Content-Type': (MIMETYPES.get(fmt) or 'text/plain') + charset}
         fmt = {'rdf': 'xml', 'ttl': 'turtle'}.get(fmt) or fmt
         return graph.serialize(format=fmt), 200, headers
 

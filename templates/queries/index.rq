@@ -3,22 +3,22 @@
 construct {
 
     ?auth a ?type;
-        libris:key ?key;
+        bf:authorizedAccessPoint ?key;
         dbpowl:influencedBy ?influence .
 
-    ?influence libris:key ?influence_key .
+    ?influence bf:authorizedAccessPoint ?influence_key .
 
 } where {
 
       service <http://dbpedia.org/sparql> {
-        ?canonical dbpowl:influencedBy ?canonical_influence .
+        ?dbp_id dbpowl:influencedBy ?dbp_influence .
       }
       ?auth a ?type;
-        owl:sameAs ?canonical;
-        libris:key ?key .
+        owl:sameAs ?dbp_id;
+        bf:authorizedAccessPoint ?key .
       ?influence
-        owl:sameAs ?canonical_influence;
-        libris:key ?influence_key .
+        owl:sameAs ?dbp_influence;
+        bf:authorizedAccessPoint ?influence_key .
 
 }
 
